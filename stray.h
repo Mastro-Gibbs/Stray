@@ -12,6 +12,8 @@
 #include "straytree.h"
 #include "straymap.h"
 #include "strayset.h"
+#include "straynode.h"
+#include "strayiterator.h"
 
 
 #endif // STRAY_H

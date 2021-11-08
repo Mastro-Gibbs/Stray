@@ -4,6 +4,7 @@
 #include <iostream>
 using namespace std;
 
+#include "strayrecord.h"
 #include "straylist.h"
 #include "ustrayset.h"
 #include "straytree.h"
@@ -14,7 +15,7 @@ template < typename K, typename V >
 class StrayMap
 {
 private:
-    class StrayMapNode
+    class StrayMapNode : public StrayRecord<K, V>
     {
     public:
 
@@ -24,47 +25,34 @@ private:
         }
 
 
-        StrayMapNode( )
-        {
-            this->key = K();
-            this->value = V();
-        }
+        StrayMapNode( ) : StrayRecord<K, V> ( )
+        {}
 
 
-        StrayMapNode( K key )
-        {
-            this->key = key;
-            this->value = V();
-        }
+        StrayMapNode( K key ) : StrayRecord<K, V> ( key, Item::First )
+        {}
 
 
-        StrayMapNode( K key, V value )
-        {
-            this->key = key;
-            this->value = value;
-        }
+        StrayMapNode( K key, V value ) : StrayRecord<K, V> ( key, value )
+        {}
 
         ~StrayMapNode() {}
 
-
         bool operator==( const StrayMapNode &other )
         {
-            return key == other.key;
+            return this->compare( other, Cmp::EQ, Item::First );
         }
 
         bool operator<( const StrayMapNode &other )
         {
-            return key < other.key;
+            return this->compare( other, Cmp::LT, Item::First );
         }
 
         bool operator>( const StrayMapNode &other )
         {
-            return key > other.key;
+            return this->compare( other, Cmp::GT, Item::First );
         }
 
-
-        K key;
-        V value;
     };
 
 public:
@@ -107,7 +95,7 @@ public:
     {
         StrayMapNode node( key );
         node = map.peek( node );
-        return node.value;
+        return node.second();
     }
 
 
@@ -122,8 +110,8 @@ public:
         }
         else
         {
-            map.purge( node );
-            map.insert( node );
+            StrayMapNode nodeOld( key );
+            map.update( nodeOld, node );
         }
     }
 
@@ -135,6 +123,20 @@ public:
         itemCount--;
     }
 
+
+    UStraySet<StrayRecord<K, V>> couples()
+    {
+        UStraySet<StrayRecord<K, V>> kv;
+        StrayVector<StrayMapNode> *vec = map.visit( VisitMode::BreadthOrder );
+
+        StrayRecord<K, V> curr;
+        for ( uint64_t i = 0; i < vec->count(); i++ )
+        {
+            curr = vec->get( i );
+            kv.append( curr );
+        }
+        return kv;
+    }
 
 
     StrayVector<K> keys()
@@ -148,7 +150,7 @@ public:
         for ( uint64_t i = 0; i < vec->count(); i++ )
         {
             StrayMapNode curr = vec->get( i );
-            k.append( curr.key );
+            k.append( curr.first() );
         }
         return k;
     }
@@ -164,7 +166,7 @@ public:
         for ( uint64_t i = 0; i < vec->count(); i++ )
         {
             StrayMapNode curr = vec->get( i );
-            v.append( curr.value );
+            v.append( curr.second() );
         }
         return v;
     }

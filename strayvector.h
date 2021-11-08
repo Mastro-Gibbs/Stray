@@ -74,7 +74,7 @@ public:
 
     uint64_t vecSize() { return size; }
 
-    T prepend( T item )
+    void prepend( T item )
     {
         updateFillValue();
 
@@ -90,10 +90,9 @@ public:
         shift( 0, size, Right );
         vec[ 0 ] = item;
         elemsCount++;
-        return item;
     }
 
-    T append( T item )
+    void append( const T &item )
     {
         updateFillValue();
 
@@ -108,7 +107,6 @@ public:
 
         vec[ elemsCount ] = item;
         elemsCount++;
-        return item;
     }
 
     void merge( StrayVector *other )
@@ -145,7 +143,7 @@ public:
         vec[ index ] = elem;
     }
 
-    T get ( uint64_t index ) const
+    T &get ( uint64_t index ) const
     {
         return vec[ index ];
     }

@@ -8,10 +8,13 @@ SOURCES += \
 
 HEADERS += \
     stray.h \
+    strayenums.h \
+    strayiterator.h \
     straylist.h \
     straymap.h \
     straymathmatrix.h \
     straymatrix.h \
+    straynode.h \
     strayqueue.h \
     strayrecord.h \
     strayset.h \

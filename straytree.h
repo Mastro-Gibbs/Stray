@@ -117,7 +117,21 @@ public:
         if ( it->isValid() )
             locate( it, elem, find );
 
+        delete it;
+
         return *find;
+    }
+
+    void update( const T &old, const T &elem )
+    {
+        StrayTreeIterator<T> *it = new StrayTreeIterator<T>( root );
+
+        it->begin();
+
+        if ( it->isValid() )
+            set( it, old, elem );
+
+        delete it;
     }
 
     T peek( T &elem )
@@ -128,6 +142,8 @@ public:
 
         if ( it->isValid() )
             get( it, elem, &elem );
+
+        delete it;
 
         return elem;
     }
@@ -276,6 +292,31 @@ private:
         {
             *item = it->examinate();
             return;
+        }
+    }
+
+
+    void set( StrayTreeIterator<T> *it, const T &elem, const T &item )
+    {
+        if ( it->examinate() > elem )
+        {
+            if ( it->hasLeft() )
+            {
+                it->moveLeft();
+                set( it, elem, item );
+            }
+        }
+        else if ( it->examinate() < elem )
+        {
+            if ( it->hasRight() )
+            {
+                it->moveRight();
+                set( it, elem, item );
+            }
+        }
+        else if ( it->examinate() == elem )
+        {
+            it->set( new StrayTreeNode( item ) );
         }
     }
 
@@ -432,6 +473,11 @@ public:
     {
         curr->rightChild = node;
         node->previous = curr;
+    }
+
+    void set( typename StrayBST<T>::StrayTreeNode *node )
+    {
+        curr->item = node->item;
     }
 
 

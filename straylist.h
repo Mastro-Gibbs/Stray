@@ -1,146 +1,209 @@
 #ifndef STRAYLIST_H
 #define STRAYLIST_H
 
-#include <iostream>
+#include <ostream>
+#include "strayiterator.h"
+#include "straynode.h"
 
 using namespace std;
-
-
-template< typename T > class StrayListIterator;
 
 
 template< typename T >
 class StrayList
 {
-friend class StrayListIterator<T>;
-private:
-    class StrayListNode
-    {
-    public:
-
-        uint64_t itemSize()
-        {
-            return sizeof( T );
-        }
-
-
-        StrayListNode( const T &item )
-        {
-            this->item = item;
-        }
-
-        ~StrayListNode() {}
-
-        T item;
-        StrayListNode *prevoius = nullptr;
-        StrayListNode *next     = nullptr;
-    };
-
 public:
-    StrayList() {}
+    /**
+     * @brief StrayList empty constructor
+     */
+    StrayList()
+    {}
 
-    ~StrayList()
+
+    /**
+     * @brief StrayList other
+     * @param other -> StrayList
+     */
+    StrayList( const StrayList &other )
     {
-        if ( !size )
-            clear();
+        StrayIterator<T> it( other.head, other.tail, other.vsize );
+        it.begin();
+
+        while( it.hasNext() )
+            append( it.next() );
     }
 
+
+    /**
+     * @brief Destructor
+     */
+    ~StrayList()
+    {
+        clear();
+    }
+
+    /**
+     * @brief clean this
+     */
     void clear()
     {
-        StrayListNode *iter = head;
-        StrayListNode *tmp  = nullptr;
+        StrayIterator<T> *it = iterate();
+        it->begin();
 
-        while ( iter )
+        StrayNode<T> *curr;
+        while ( it->hasNext() )
         {
-            tmp = iter;
-            iter = iter->next;
-            delete tmp;
+            curr = it->get();
+            it->next();
+            delete curr;
         }
 
+        curr = nullptr;
         head = nullptr;
         tail = nullptr;
         size = 0;
+
+        delete it;
     }
 
+
+    /**
+     * @brief return unsigned long, memory allocated by this
+     * @return
+     */
     uint64_t memSize()
     {
         uint64_t listSize = 0;
 
-        StrayListNode *curr = head;
-        for ( int i = 0; i < size; i++ )
+        StrayIterator<T> *it = iterate();
+        it->begin();
+
+        while( it->hasNext() )
         {
-            listSize += curr->itemSize();
-            curr = curr->next;
+            StrayNode<T>* curr = it->get();
+            listSize += curr->mem_size();
+            it->next();
         }
-        listSize += sizeof ( this );
+
+        delete it;
+
         return listSize;
     }
 
+
+    /**
+     * @brief First index of elem
+     * @param elem -> T
+     * @return int
+     */
     int indexOf( const T &elem )
     {
         int res = - 1;
-        StrayListNode*find = new StrayListNode( elem );
-        StrayListNode *curr = head;
-        for ( int i = 0; i < size; i++ )
+        StrayIterator<T> *it = iterate();
+        it->begin();
+
+        int i = 0;
+        while( it->hasNext() )
         {
-            if ( curr->item == find->item )
+            if ( it->peek() == elem )
             {
                 res = i;
                 break;
             }
-            curr = curr->next;
+            it->next();
+            i++;
         }
+
+        delete it;
         return res;
     }
 
+
+    /**
+     * @brief Last index of elem
+     * @param elem -> T
+     * @return int
+     */
     int lastIndexOf( const T &elem )
     {
-        int res = - 1;
-        StrayListNode *find = new StrayListNode( elem );
-        StrayListNode *curr = tail;
-        for ( int i = size; i > 0; i-- )
+        int res = -1;
+
+        StrayIterator<T> *it = iterate();
+        it->end();
+
+        int i = count() - 1;
+        while( it->hasPrev() )
         {
-            if ( curr->item == find->item )
+            if ( it->peek() == elem )
             {
                 res = i;
                 break;
             }
-            curr = curr->prevoius;
+            it->prev();
+            i--;
         }
-        return --res;
+
+        delete it;
+
+        return res;
     }
 
+
+    /**
+     * @brief Return elems count
+     * @return int
+     */
     int count()
     {
         return size;
     }
 
+
+    /**
+     * @brief True is size == 0 otherwise false
+     * @return boolean
+     */
     bool isEmpty()
     {
         if( size == 0 ) return true;
         else return false;
     }
 
+
+    /**
+     * @brief Check if this contains elem
+     * @param elem -> T
+     * @return bool
+     */
     bool contains( const T &elem )
     {
         bool res = false;
-        StrayListNode *find = new StrayListNode( elem );
-        StrayListNode*curr = head;
-        for ( int i = 0; i < size; i++ )
+
+        StrayIterator<T> *it = iterate();
+        it->begin();
+
+        while( it->hasNext() )
         {
-            if ( curr->item == find->item )
+            if ( it->peek() == elem )
             {
                 res = true;
                 break;
             }
-            curr = curr->next;
+            it->next();
         }
+
+        delete it;
+
         return res;
     }
 
+
+    /**
+     * @brief Prepend elem on head
+     * @param elem -> T
+     */
     void prepend( const T &elem )
     {
-        StrayListNode *curr = new StrayListNode( elem );
+        StrayNode<T> *curr = new StrayNode<T>( elem );
 
         if ( !head )
         {
@@ -149,26 +212,42 @@ public:
         }
         else
         {
-            head->prevoius = curr;
-            curr->next = head;
+            head->link( curr );
+            curr->link( nullptr, head );
             head = curr;
         }
         size++;
     }
 
+
+    /**
+     * @brief Prepend list on head
+     * @param list -> StrayList
+     */
     void prepend( StrayList<T> *list )
     {
-        StrayListNode *curr = list->tail;
-        for ( int i = list->size; i > 0; i-- )
+        StrayIterator<T> *it = list->iterate();
+        it->end();
+
+        int i = list->count();
+        while( it->hasPrev()  && i )
         {
-            prepend( curr->item );
-            curr = curr->prevoius;
+            prepend( it->peek() );
+            it->prev();
+            i--;
         }
+
+        delete it;
     }
 
+
+    /**
+     * @brief Append elem on tail
+     * @param elem -> T
+     */
     void append( const T &elem )
     {
-        StrayListNode *curr = new StrayListNode( elem );
+        StrayNode<T> *curr = new StrayNode<T>( elem );
 
         switch ( size )
         {
@@ -178,28 +257,44 @@ public:
                 break;
             case 1:
                 tail = curr;
-                head->next = tail;
-                tail->prevoius = head;
+                tail->link( head );
+                head->link( nullptr, tail );
                 break;
             default:
-                curr->prevoius = tail;
-                tail->next = curr;
+                curr->link( tail );
+                tail->link( nullptr, curr );
                 tail = curr;
                 break;
         }
         size++;
     }
 
+    /**
+     * @brief Append list on tail
+     * @param list -> StrayList
+     */
     void append( StrayList<T> *list )
     {
-        StrayListNode *curr = list->head;
-        for ( int i = 0; i < list->size; i++ )
+        StrayIterator<T> *it = list->iterate();
+        it->begin();
+
+        int i = list->count();
+        while( it->hasNext() && i )
         {
-            append( curr->item );
-            curr = curr->next;
+            append( it->peek() );
+            it->next();
+            i--;
         }
+
+        delete it;
     }
 
+
+    /**
+     * @brief Insert elem on specific index
+     * @param elem -> T
+     * @param index -> int
+     */
     void insert( const T &elem, int index )
     {
         if ( index > size ) return;
@@ -208,42 +303,163 @@ public:
         else if ( index == size ) append( elem );
         else
         {
-            StrayListNode *newNode = new StrayListNode( elem );
-            StrayListNode *nextNode = head->next;
-            StrayListNode *prevNode = head;
+            StrayNode<T> *newNode = new StrayNode<T>( elem );
 
-            for ( int i = 1; i < index; i++ )
+
+            StrayIterator<T> *it = iterate();
+            it->begin();
+
+            int i = index + 1;
+            while( it->hasNext() && i )
             {
-                prevNode = nextNode;
-                nextNode = nextNode->next;
-            }
+                i--;
+                if ( !i )
+                {
+                    StrayNode<T> *next = it->get();
+                    it->prev();
+                    StrayNode<T> *prev = it->get();
 
-            prevNode->next = newNode;
-            newNode->prevoius = prevNode;
-            newNode->next  = nextNode;
-            nextNode->prevoius = newNode;
+                    newNode->link( prev, next );
+                    prev->link( nullptr, newNode );
+                    next->link( newNode );
+                }
+                it->next();
+            }
+            delete it;
         }
         size++;
     }
 
+    /**
+     * @brief Remove first elem
+     * @return elem removed
+     */
     T removeFirst()
     {
-        T item = head->item;
-        head = head->next;
-        head->prevoius = nullptr;
+        T item = T();
+
+        if ( size == 1 )
+        {
+            item = head->data();
+            delete head;
+            head = nullptr;
+            tail = nullptr;
+        }
+        else
+        {
+            StrayIterator<T> *it = iterate();
+            it->begin();
+
+            if ( it->isValid() )
+            {
+                StrayNode<T> *tmp = it->get();
+                item = it->peek();
+                it->next();
+                if ( it->isValid() )
+                {
+                    StrayNode<T> *next = it->get();
+                    next->unlink_left();
+                    head = next;
+                }
+                delete tmp;
+            }
+            delete it;
+        }
         size--;
+
         return item;
     }
 
+    /**
+     * @brief Remove last elem
+     * @return return elem removed
+     */
     T removeLast()
     {
-        T item = tail->item;
-        tail = tail->prevoius;
-        tail->next = nullptr;
+        T item = T();
+
+        if ( size == 1 )
+        {
+            item = head->data();
+            delete head;
+            head = nullptr;
+            tail = nullptr;
+        }
+        else
+        {
+            StrayIterator<T> *it = iterate();
+            it->end();
+
+            if ( it->isValid() )
+            {
+                StrayNode<T> *tmp = it->get();
+                item = it->peek();
+                it->prev();
+                if ( it->isValid() )
+                {
+                    StrayNode<T> *next = it->get();
+                    next->unlink_right();
+                    tail = next;
+                }
+                delete tmp;
+            }
+            delete it;
+        }
         size--;
+
         return item;
     }
 
+
+    /**
+     * @brief Remode first occurence of elem
+     * @param elem ->
+     */
+    void remove( const T &elem )
+    {
+        if ( size == 1 || head->data() == elem )
+        {
+            if ( head->data() == elem )
+                removeFirst();
+        }
+        else
+        {
+            StrayIterator<T> it( head, tail, vsize );
+            it.begin();
+
+            while( it.hasNext() )
+            {
+                if( it.peek() == elem )
+                {
+                    StrayNode<T> *tmp = it.get();
+                    it.next();
+
+                    StrayNode<T> *next = it.get();
+                    it.prev();
+                    it.prev();
+
+                    StrayNode<T> *prev = it.get();
+
+                    prev->link( nullptr, next );
+                    next->link( prev );
+
+                    delete tmp;
+                    tmp = nullptr;
+                    size--;
+
+                    break;
+                }
+                it.next();
+            }
+        }
+    }
+
+
+    /**
+     * @brief Compare this to other list
+     * @param other -> StrayList
+     * @return bool
+     */
     bool compare( const StrayList &other )
     {
         StrayList<T> &param = const_cast<StrayList<T> &>( other );
@@ -255,8 +471,8 @@ public:
         copy.sort();
         param.sort();
 
-        StrayListIterator<T> it1( head, tail, vsize );
-        StrayListIterator<T> it2( param.head, param.tail, param.vsize );
+        StrayIterator<T> it1( head, tail, vsize );
+        StrayIterator<T> it2( param.head, param.tail, param.vsize );
 
         it1.begin();
         it2.begin();
@@ -270,14 +486,32 @@ public:
                 break;
             }
         }
+
         return res;
     }
 
-    StrayListIterator<T>* iterate()
+    /**
+     * @brief retrurn StrayIterator pointer to this
+     * @return StrayIterator ptr
+     */
+    StrayIterator<T>* iterate()
     {
-        return new StrayListIterator<T>( head, tail, vsize );
+        return new StrayIterator<T>( head, tail, vsize );
     }
 
+    /**
+     * @brief retrurn StrayIterator to this
+     * @return StrayIterator
+     */
+    StrayIterator<T> static_iterate()
+    {
+        return StrayIterator<T>( head, tail, vsize );
+    }
+
+
+    /**
+     * @brief Sort list, based on merge sort
+     */
     void sort()
     {
         int i = 0, t1 = 0, t2 = 0, dim = 1;
@@ -300,44 +534,122 @@ public:
             }
         }
 
-        StrayListNode *curr = head;
-        for ( int i = 0; i < size; i++ )
+        StrayIterator<T> *it = iterate();
+        it->begin();
+
+        int index = 0;
+        while ( it->hasNext() && index < size )
         {
-            curr->item = arr[ i ];
-            curr = curr->next;
+            it->set( arr[ index++ ] );
+            it->next();
         }
+        delete it;
 
         delete [] aux;
         delete [] arr;
     }
 
-    void operator<<( const T &elem )
-    {
-        append( elem );
-    }
 
-    void operator<<( StrayList<T> *list )
-    {
-        append( list );
-    }
-
+    /**
+     * @brief Return list converted to array
+     * @param array -> T[]
+     */
     void toArray( T *array )
     {
-        StrayListNode *curr = head;
-        array[ 0 ] = head->item;
-        int i = 1;
-        for ( ; i < size; i++ )
+        StrayIterator<T> *it = iterate();
+        it->begin();
+
+        int i = 0;
+        while( it->hasNext() )
         {
-            curr = curr->next;
-            array[ i ] = curr->item;
+            array[ i++ ] = it->next();
         }
+
+        delete it;
     }
+
+
+    StrayList& operator = ( const StrayList &l )
+    {
+        clear();
+
+        StrayIterator<T> it ( l.head, l.tail, l.vsize );
+        it.begin();
+
+        while( it.hasNext() )
+        {
+            append( it.next() );
+        }
+
+        size = l.size;
+
+        return *this;
+    }
+
+
+    StrayList operator + ( const StrayList &l )
+    {
+        StrayList<T> res;
+
+        StrayIterator<T> it_this ( head, tail, vsize );
+        it_this.begin();
+        while( it_this.hasNext() )
+        {
+            res.append( it_this.next() );
+        }
+
+        StrayIterator<T> it ( l.head, l.tail, l.vsize );
+        it.begin();
+        while( it.hasNext() )
+        {
+            res.append( it.next() );
+        }
+
+        return res;
+    }
+
+
+    friend ostream &operator<<( ostream& os, const StrayList<T>& l )
+    {
+        os << '[';
+        StrayIterator<T> it( l.head, l.tail, l.vsize );
+        it.begin();
+
+        while( it.hasNext() )
+        {
+            if ( it.get() == l.tail ) break;
+            os << it.next() << ", ";
+        }
+        os << it.next();
+        os << ']';
+
+        return os;
+    }
+
+
+    friend ostream &operator<<( ostream& os, const StrayList<T>* l )
+    {
+        os << '[';
+        StrayIterator<T> it( l->head, l->tail, l->vsize );
+        it.begin();
+
+        while( it.hasNext() )
+        {
+            if ( it.get() == l->tail ) break;
+            os << it.next() << ", ";
+        }
+        os << it.next();
+        os << ']';
+
+        return os;
+    }
+
 
 private:
     int size = 0;
     int *vsize = &size;
-    StrayListNode *head = nullptr;
-    StrayListNode *tail = nullptr;
+    StrayNode<T> *head = nullptr;
+    StrayNode<T> *tail = nullptr;
 
     void merge( T *array, T *aux, int low, int mid, int high )
     {
@@ -361,115 +673,5 @@ private:
     }
 };
 
-
-
-template< typename T >
-class StrayListIterator
-{
-public:
-    friend class StrayList<T>;
-    void startFrom( const T &item )
-    {
-        begin();
-        while ( hasNext() )
-        {
-            if ( next() == item )
-            {
-                curr = curr->prevoius;
-                break;
-            }
-        }
-    }
-
-    void startFromLast( const T &item )
-    {
-        end();
-        while ( hasPrev() )
-        {
-            if ( prev() == item )
-            {
-                curr = curr->next;
-                break;
-            }
-        }
-    }
-
-    void begin() { curr = startNode; }
-
-    void end() { curr = endNode; }
-
-    bool hasNext()
-    {
-        if ( curr != nullptr ) return true;
-        else return false;
-    }
-
-    bool hasPrev()
-    {
-        if ( curr != nullptr ) return true;
-        else return false;
-    }
-
-    T next()
-    {
-        T item = curr->item;
-        curr = curr->next;
-        return item;
-    }
-
-    T prev()
-    {
-        T item = curr->item;
-        curr = curr->prevoius;
-        return item;
-    }
-
-    T peek() { return curr->item; }
-
-    void set( const T &elem ) { curr->item = elem; }
-
-    bool compare( const T &elem )
-    {
-        if ( curr->item == elem ) return true;
-        else return false;
-    }
-
-    T remove()
-    {
-        typename StrayList<T>::StrayListNode *nextNode = curr->next;
-        typename StrayList<T>::StrayListNode *prevNode = curr->prevoius;
-
-        if ( curr != startNode && curr != endNode )
-        {
-            nextNode->prevoius = prevNode;
-            prevNode->next     = nextNode;
-        }
-        else if ( curr == startNode )
-        {
-            startNode = nextNode;
-            startNode->prevoius = nullptr;
-        }
-        else
-        {
-            endNode = prevNode;
-            endNode->next = nullptr;
-        }
-        *vsize = *vsize - 1;
-        return curr->item;
-    }
-
-private:
-    StrayListIterator( typename StrayList<T>::StrayListNode *head, typename StrayList<T>::StrayListNode *tail, int *size )
-    {
-        startNode = head;
-        endNode = tail;
-        vsize = size;
-    };
-
-    int *vsize         = nullptr;
-    typename StrayList<T>::StrayListNode *curr      = nullptr;
-    typename StrayList<T>::StrayListNode *startNode = nullptr;
-    typename StrayList<T>::StrayListNode *endNode   = nullptr;
-};
 
 #endif // STRAYLIST_H

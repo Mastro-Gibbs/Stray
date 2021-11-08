@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "stray.h"
+#include "strayiterator.h"
 #include "strayrecord.h"
 
 #include <cstdlib>
@@ -42,17 +43,86 @@ void sortIt( StrayList<int> *stray )
 
 int main()
 {
+    StrayList<int> l;
 
+    l.append( 2 );
+    l.append( 4 );
+    l.append( 6 );
+
+    StrayList<int> l1;
+
+    l1.append( 2 );
+    l1.append( 43 );
+    l1.append( 6 );
+
+    StrayList<int> l2( l1 );
+
+    cout << l2 << endl;
+
+    StrayIterator<int> it = l.static_iterate();
+    it.begin();
+
+    while ( it.hasNext() )
+        cout << it.next() << endl;
 
     /*
+    StrayRecord<int, int> r( 3, 3 );
+    StrayRecord<int, int> r1( 2, 2 );
+
+    StrayNode<StrayRecord<int, int>> n( r );
+    StrayNode<StrayRecord<int, int>> n1( r1 );
+
+    n.link( nullptr, &n1 );
+    n1.link( &n, nullptr );
+
+
+    StrayIterator<StrayRecord<int, int>> it( &n, &n1 );
+    it.begin();
+
+    if ( it.isValid() )
+    {
+        while( it.hasNext() )
+        {
+            StrayRecord<int, int> r = it.peek();
+            r.setSecond( 100 );
+            it.set( r );
+            cout << it.next() << endl;
+        }
+    }
+    else
+        cout << "iterator not valid" << endl;
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+
     StrayMap<int, double> map;
 
     map.put( 1, 1.2 );
     map.put( 8, 14.6 );
     map.put( 9, 1.2 );
     map.put( 2, 14.6 );
-
-
 
 
     StrayVector<double> vals = map.values();
@@ -70,23 +140,19 @@ int main()
     map.purge( 9 );
 
 
-    StrayVector<double> vals1 = map.values();
-    StrayVector<int> k1 = map.keys();
+    UStraySet<StrayRecord<int, double>> pairs = map.couples();
+    StraySetIterator<StrayRecord<int, double>> *it = pairs.iterate();
 
-    for ( uint64_t i = 0; i < vals1.count(); i++ )
+    it->begin();
+    while( it->hasNext() )
     {
-        cout << k1.get( i ) << ", " << vals1.get( i ) << endl;
+        cout << it->next() << endl;
     }
 
 
 
+
 */
-
-
-
-
-
-
 
 
 

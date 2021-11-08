@@ -1,1 +1,3 @@
 # Stray
+
+* C++ containers framework

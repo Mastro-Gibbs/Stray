@@ -1,30 +1,31 @@
+
+
+
+/**
+ * @author Stefano Fattore ( aka MastroGibbs )
+ *
+ * @brief StrayRecord< TYPE1, TYPE2 > aka Tuple< E1, E2 >. It's a class to manage couples of data as key-value.
+ *
+ * @date 07/11/2021
+ *
+ * @copyright Stefano Fattore
+ */
+
+
+
 #ifndef STRAYRECORD_H
 #define STRAYRECORD_H
 
-#include <iostream>
-
-enum Cmp
-{
-    LT = 0,
-    EQ = 1,
-    GT = 2,
-    LE = 3,
-    GE = 4,
-    NE = 5
-};
-
-
-enum Item
-{
-    First = 0,
-    Second = 1,
-    Both = 2
-};
-
+#include <ostream>
+#include "strayenums.h"
 
 using namespace std;
 
+
 template< typename TYPE1, typename TYPE2 >
+/**
+ * @brief The StrayRecord class
+ */
 class StrayRecord
 {
 public:
@@ -75,6 +76,17 @@ public:
         item1 = t1;
         item2 = t2;
     }
+
+
+    /**
+     * @brief StrayRecord constructor from another StrayRecord
+     * @param other -> StrayRecord
+     */
+    StrayRecord( const StrayRecord &other )
+    {
+        *this = other;
+    }
+
 
     ~StrayRecord() {}
 
